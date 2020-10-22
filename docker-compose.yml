@@ -1,0 +1,55 @@
+version: "3.8"
+services:
+  web:
+    build:
+      context: ./
+      dockerfile: ./bootstrap/Dockerfile
+    command:
+      [
+        "/app/bootstrap/wait-for-mysql.sh",
+        "db",
+        "3306",
+        "rails",
+        "s",
+      ]
+    env_file: web.env
+    # For when to open the ports to the internet. Docker reconfigured firewall to open a hole in it.
+    #ports:
+    #  - "8080:8080"
+    expose:
+      - "3000"
+    # volumes:
+      # - airflow_logs:/app/airflow/logs
+    networks:
+      - cafe
+
+  db:
+    image: mysql:5
+    command: --default-authentication-plugin=mysql_native_password
+    restart: always
+    env_file: db.env
+    volumes:
+      # - /home/krerkkiat/projects/dmsc-etl/mysql_data:/var/lib/mysql
+      - cafe_data:/var/lib/mysql
+      # - ./db/01-create-lake-db.sql:/docker-entrypoint-initdb.d/01-create-lake-db.sql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping --silent"]
+      interval: 3m
+      timeout: 20s
+      retries: 5
+      start_period: 1m
+    # For when to open the ports to the internet. Docker reconfigured firewall to open a hole in it.
+    #ports:
+    #  - "3306:3306"
+    expose:
+      - "3306"
+    networks:
+      - cafe
+    cap_add:
+      - SYS_NICE
+
+volumes:
+  cafe_data: {}
+
+networks:
+  cafe:
